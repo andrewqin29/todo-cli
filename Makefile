@@ -1,12 +1,12 @@
 # Compiler and flags
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall
+CXXFLAGS = -std=c++17 -Wall -g
 
-# Define final target command
 TARGET = todo
 
 # Source and object files
-SOURCE = main.cpp Task.cpp
+SOURCES = Main.cpp Task.cpp
+HEADERS = Task.h
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(TARGET)
@@ -14,10 +14,10 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJECTS)
 
-main.o: main.cpp Task.h
+Main.o: Main.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -c main.cpp -o main.o
 
-Task.o: Task.cpp Task.h
+Task.o: Task.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -c Task.cpp -o Task.o
 
 clean:
