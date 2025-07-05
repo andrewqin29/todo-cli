@@ -1,4 +1,4 @@
-# CLI Todo List - A C++ Project
+# CLI Todo List
 
 A simple, lightweight command-line based task manager built with C++.
 
