@@ -22,6 +22,7 @@ std::filesystem::path get_task_path();
 void save_tasks_to_file(const std::vector<Task>& tasks);
 std::vector<Task> load_tasks_from_file();
 void display_tasks(const std::vector<Task>& tasks);
+void display_help();
 
 // ------- MAIN -------
 int main(int argc, char* argv[]) {
@@ -176,4 +177,25 @@ void display_tasks(const std::vector<Task>& tasks) {
 					<< COLOR_RESET 
 					<< "\n";
 	}
+}
+
+void display_help() {
+    std::cout << COLOR_TITLE_RED << "Todo CLI Help" << COLOR_RESET << std::endl;
+    std::cout << "----------------" << std::endl;
+    std::cout << "A simple command-line task manager." << std::endl << std::endl;
+    std::cout << "USAGE:" << std::endl;
+    std::cout << "  todo <command> [arguments]" << std::endl << std::endl;
+    std::cout << "COMMANDS:" << std::endl;
+    std::cout << "  add \"<description>\" [--priority <level>]" << std::endl;
+    std::cout << "    Adds a new task. Priority can be 'low', 'med', or 'high'." << std::endl << std::endl;
+    std::cout << "  display [priority|pending]" << std::endl;
+    std::cout << "    Displays tasks. Default is all. 'priority' sorts by priority, 'pending' shows only incomplete tasks." << std::endl << std::endl;
+    std::cout << "  done <index>" << std::endl;
+    std::cout << "    Marks the task at the given index as complete." << std::endl << std::endl;
+    std::cout << "  undone <index>" << std::endl;
+    std::cout << "    Marks the task at the given index as incomplete." << std::endl << std::endl;
+    std::cout << "  remove <index>" << std::endl;
+    std::cout << "    Permanently removes the task at the given index." << std::endl << std::endl;
+    std::cout << "  help" << std::endl;
+    std::cout << "    Shows this help message." << std::endl;
 }
