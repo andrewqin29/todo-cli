@@ -17,6 +17,7 @@ const std::string STYLE_COMPLETED = "\033[9;90m";			// strikethrough and grey
 const std::string COLOR_RESET = "\033[0m";
 
 // function prototypes
+std::filesystem::path get_task_path();
 void save_tasks_to_file(const std::vector<Task>& tasks);
 std::vector<Task> load_tasks_from_file();
 void display_tasks(const std::vector<Task>& tasks);
@@ -25,42 +26,108 @@ void display_tasks(const std::vector<Task>& tasks);
 int main(int argc, char* argv[]) {
 
 	// **** DAILY RESET FUNCTIONALITY ****
-	const char *home_dir = getenv("HOME")
-	if (home_dir == nullptr) {
-		std::cerr << "Error. Could not locate home directory." << endl;
-		return;
-	}
-
-	std::string home_dir_str(home_dir);
-	std::filesystem::path tasks_path = home_dir_str / ".todo-cli-tasks.csv" //path to tasks csv should be /home/username/.todo-cli-tasks.csv
+	std::filesystem::path tasks_path = get_task_path();
 
 	if (!std::filesystem::exists(tasks_path)) {
 		return;
 	}
 
-	// time vars
 	auto last_modified = std::filesystem::last_write_time(tasks_path);
 	auto curr_time = std::chrono::system_clock::now()
-	
 	auto today_midnight = std::chrono::floor<std::chrono::days>(curr_time);
 	auto reset_time = today_midnight + std::chrono::hours(4); // 4am
 
-	// clear todo list
 	if (last_modified < reset_time && curr_time >= reset_time) {
 		std::ofstream ofs;
-		ofs.open(tasks_path, std::ofstream::out | std::ofstream::trunc); // open it in write mode and truncate (remove contents)
+		ofs.open(tasks_path, std::ofstream::out | std::ofstream::trunc); // erase all
 		ofs.close();
 	}
+
+	// **** LOAD TASK VECTOR ****
+	std::vector<Task> tasks = load_tasks_from_file();
+
+	// **** COMMAND HANDLING ****
+
 	
+	return 0;
 }
 
 // function implementations
-void save_tasks_to_file(const std::vector<Task>& tasks) {
+std::filesystem::path get_task_path() {
+	const char *home_dir = getenv("HOME")
+	if (home_dir == nullptr) {
+		std::cerr << "Error. Could not locate home directory." << std::endl;
+		return;
+	}
 	
+	std::string home_dir_str(home_dir);
+	std::filesystem::path tasks_path = home_dir_str / ".todo-cli-tasks.csv" //path to tasks csv should be /home/username/.todo-cli-tasks.csv
+	return tasks_path
+}
+
+void save_tasks_to_file(const std::vector<Task>& tasks) {
+	// clear the current tasks file
+	std::filesystem::path tasks_path = get_task_path();
+	std::ofstream ofs;
+	ofs.open(tasks_path, std::ofstream::out | std::ofstream::trunc); // erase all
+
+	if (!ofs.is_open()) {
+		std::cerr << "Error. Could not open tasks file." << std::endl;
+		return;
+	}
+	
+	for(const Task& curr : tasks) {
+		int complete = curr.is_complete();
+		int p_int = static_cast<int>(curr.get_priority());
+
+		// format: is_complete,priority_int,description
+		ofs << complete << "," << p_int << "," << curr.get_description() << "\n";
+	}
+	ofs.close();
 }
 
 std::vector<Task> load_tasks_from_file() {
-	
+	std::filesystem::path tasks_path = get_task_path();
+	std::vector<Task> ret;
+
+	std::ifstream file(tasks_path);
+	if (!file.is_open()) { 
+		return ret;
+	}
+
+	std::string curr;
+	while(std::getline(file, curr)) {
+		std::stringstream ss(curr);
+		std::string part;
+
+		bool is_complete;
+		int priority_int;
+		std::string description;
+
+		// parse is_complete (0 or 1)
+		std::getline(ss, part, ',');
+		is_complete = (std::stoi(part) == 1);
+
+		// parse priority
+		std::getline(ss, part, ',');
+		priority_int = std::stoi(part);
+		Priority priority = static_cast<Priority>(priority_int);
+
+		// parse description
+		std::getline(ss, part);
+		description = part;
+
+		Task curr_task(description, priority);
+		if (is_complete) {
+			curr_task.mark_is_complete(true);
+		}
+
+		// add to ret vector
+		ret.push_back(curr_task);
+		
+	}
+	file.close();
+	return ret;
 }
 
 void display_tasks(const std::vector<Task>& tasks) {
