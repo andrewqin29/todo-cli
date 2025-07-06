@@ -6,8 +6,8 @@ CXXFLAGS = -std=c++20 -Wall -g
 TARGET = todo
 
 # Source, object and header files
-SOURCES = Main.cpp Task.cpp
-HEADERS = Task.h
+SOURCES = $(wildcard *.cpp)
+HEADERS = $(wildcard *.h)
 OBJECTS = $(SOURCES:.cpp=.o)
 
 # Default final executable
@@ -15,15 +15,17 @@ all: $(TARGET)
 
 # Linker
 $(TARGET): $(OBJECTS)
+	@echo "Linking..."
 	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJECTS)
+	@echo "Build complete. Executable is '$(TARGET)'"
 
 # Compile .cpp files into .o
-Main.o: Main.cpp $(HEADERS)
-	$(CXX) $(CXXFLAGS) -c main.cpp -o main.o
-
-Task.o: Task.cpp $(HEADERS)
-	$(CXX) $(CXXFLAGS) -c Task.cpp -o Task.o
+%.o: %.cpp $(HEADERS)
+	@echo "Building .o files..."
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+	@echo ".o files built."
 
 # Make clean to clean directory
+.PHONY: clean
 clean:
 	rm -f $(TARGET) $(OBJECTS)
