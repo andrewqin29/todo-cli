@@ -46,4 +46,5 @@ Once built, you can use the program with the following commands:
 - **Display all tasks:** `todo display`
 - **Mark a task as done:** `todo done 1` (where 1 is the task index)
 - **Remove a task:** `todo remove 1`
+- **Clear all tasks:** `todo clear`
 - **Show help:** `todo help`
