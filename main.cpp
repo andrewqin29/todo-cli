@@ -17,6 +17,8 @@ const std::string COLOR_LOW_PRIORITY = "\033[37m";			// standard white/default
 const std::string STYLE_COMPLETED = "\033[9;90m";			// strikethrough and grey
 const std::string COLOR_RESET = "\033[0m";
 
+const char* const TASKS_FILENAME = ".todo-cli-tasks.csv";
+
 // function prototypes
 void check_and_perform_daily_reset();
 std::filesystem::path get_task_path();
@@ -64,7 +66,7 @@ int main(int argc, char* argv[]) {
                 i++; 
             }
         }
-        tasks.emplace_back(Task(description, priority));
+        tasks.emplace_back(description, priority);
         std::cout << "Added new task: \"" << description << "\"" << std::endl;
         
 	} else if (command == "display") {
@@ -147,7 +149,7 @@ int main(int argc, char* argv[]) {
 		return 0;
 		
 	} else {
-		std::cout << "Error: Incalid command. See 'todo help' for more info." << std::endl;
+		std::cout << "Error: Invalid command. See 'todo help' for more info." << std::endl;
 	}
 
 	// save tasks after command modifications
@@ -155,7 +157,7 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-// ------- MAIN -------
+// ------- FUNCTION IMPLEMENTATIONS -------
 
 void check_and_perform_daily_reset() {
     std::filesystem::path tasks_path = get_task_path();
@@ -180,15 +182,15 @@ void check_and_perform_daily_reset() {
 }
 
 std::filesystem::path get_task_path() {
-	const char *home_dir = getenv("HOME")
+	const char *home_dir = getenv("HOME");
 	if (home_dir == nullptr) {
-		std::cerr << "Error: Could not locate home directory." << std::endl;
-		return;
+		std::cerr << "Fatal Error: HOME environment variable not set. Cannot determine file path." << std::endl;
+		exit(1);
 	}
 	
 	std::string home_dir_str(home_dir);
-	std::filesystem::path tasks_path = home_dir_str / ".todo-cli-tasks.csv" //path to tasks csv should be /home/username/.todo-cli-tasks.csv
-	return tasks_path
+	std::filesystem::path tasks_path = home_dir_str / TASKS_FILENAME; //path to tasks csv should be /home/username/.todo-cli-tasks.csv
+	return tasks_path;
 }
 
 void save_tasks_to_file(const std::vector<Task>& tasks) {
@@ -201,60 +203,98 @@ void save_tasks_to_file(const std::vector<Task>& tasks) {
 		return;
 	}
 	
-	for(const Task& curr : tasks) {
-		int complete = curr.is_complete();
-		int p_int = static_cast<int>(curr.get_priority());
+	for(const Task& task : tasks) {
+		std::string description = task.get_description();
+		std::string processed_description;
+		for (char c : description) {
+			if (c == '"') {
+				processed_description += "\"\"";
+			} else {
+				processed_description += c;
+			}
+		}
 
-		// format: is_complete,priority_int,description
-		ofs << complete << "," << p_int << "," << curr.get_description() << "\n";
+		ofs << task.is_complete() << ","
+            << static_cast<int>(task.get_priority()) << ","
+            << "\"" << processed_description << "\"" // Enclose in quotes
+            << "\n";
 	}
-	ofs.close();
 }
 
 std::vector<Task> load_tasks_from_file() {
 	std::filesystem::path tasks_path = get_task_path();
-	std::vector<Task> ret;
+	std::vector<Task> loaded_tasks;
+	std::vector<std::string> valid_lines; // valid lines in case of rewrite
+	bool is_file_dirty = false; // flag for rewriting file
 
 	std::ifstream file(tasks_path);
 	if (!file.is_open()) { 
-		return ret;
+		return loaded_tasks;
 	}
 
-	std::string curr;
-	while(std::getline(file, curr)) {
-		if (curr.empty()) continue;
+	std::string line;
+	while(std::getline(file, line)) {
+		if (line.empty()) continue;
 		
-		std::stringstream ss(curr);
-		std::string part;
+		try {
+			std::stringstream ss(line);
+			std::string part;
 
-		bool is_complete;
-		int priority_int;
-		std::string description;
+			// parse is_complete
+			std::getline(ss, part, ',');
+			bool is_complete = (std::stoi(part) == 1);
 
-		// parse is_complete (0 or 1)
-		std::getline(ss, part, ',');
-		is_complete = (std::stoi(part) == 1);
+			// parse priority
+			std::getline(ss, part, ',');
+			Priority priority = static_cast<Priority>(std::stoi(part));
 
-		// parse priority
-		std::getline(ss, part, ',');
-		priority_int = std::stoi(part);
-		Priority priority = static_cast<Priority>(priority_int);
+			// parse description
+			std::string description;
+			std::getline(ss, description);
+			
+			if (!description.empty() && description.front() == '"' && description.back() == '"') {
+                // 1. Remove the outer quotes.
+                description = description.substr(1, description.length() - 2);
+                // 2. Unescape any doubled-up quotes ("") back to a single quote (").
+                std::string final_description;
+                for (size_t i = 0; i < description.length(); ++i) {
+                    if (description[i] == '"' && i + 1 < description.length() && description[i+1] == '"') {
+                        final_description += '"';
+                        i++; // Skip the next quote
+                    } else {
+                        final_description += description[i];
+                    }
+                }
+                description = final_description;
+            }
 
-		// parse description
-		std::getline(ss, part);
-		description = part;
-
-		Task curr_task(description, priority);
-		if (is_complete) {
-			curr_task.mark_is_complete(true);
+            Task current_task(description, priority);
+            if (is_complete) {
+                current_task.mark_is_complete(true);
+            }
+            
+            loaded_tasks.push_back(current_task);
+            valid_lines.push_back(line);
+            
+		} catch (const std::exception &e) {
+			std::cerr << "Warning: Malformed line found in tasks file. Please don't edit the file directly. It will be removed." << std::endl;
+            std::cerr << "  > " << line << std::endl;
+            is_file_dirty = true;
 		}
-
-		// add to ret vector
-		ret.push_back(curr_task);
 		
 	}
+	
 	file.close();
-	return ret;
+
+	if(is_file_dirty) {
+		std::ofstream ofs(tasks_path, std::ios::trunc);
+		for (const auto& valid : valid_lines) {
+			ofs << valid << "\n";
+		}
+		std::cout << "Tasks file has been cleaned." << std::endl;
+	}
+
+	return loaded_tasks;
 }
 
 void display_tasks(const std::vector<Task>& tasks) {
