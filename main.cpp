@@ -189,7 +189,7 @@ std::filesystem::path get_task_path() {
 	}
 	
 	std::string home_dir_str(home_dir);
-	std::filesystem::path tasks_path = home_dir_str / TASKS_FILENAME; //path to tasks csv should be /home/username/.todo-cli-tasks.csv
+	std::filesystem::path tasks_path = std::filesystem::path(home_dir) / TASKS_FILENAME; //path to tasks csv should be /home/username/.todo-cli-tasks.csv
 	return tasks_path;
 }
 

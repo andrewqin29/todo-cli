@@ -11,7 +11,7 @@ enum class Priority {
 class Task {
 	private:
 		std::string description;
-		bool is_complete;
+		bool m_is_complete;
 		Priority priority;
 		
 	public:
@@ -25,4 +25,4 @@ class Task {
 		
 		// Setters -- modifying task states
 		void mark_is_complete(bool status);
-}
+};
