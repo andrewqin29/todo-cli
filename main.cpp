@@ -39,8 +39,15 @@ int main(int argc, char* argv[]) {
 
 	// **** COMMAND HANDLING ****
 	if (argc < 2) { // 'todo' with no arguments
-		display_tasks(tasks);
-		return 0;
+		std::vector<Task> sorted_tasks = tasks;
+        std::sort(sorted_tasks.begin(), sorted_tasks.end(), [](const Task& a, const Task& b) {
+            if (a.is_complete() != b.is_complete()) {
+                return !a.is_complete();
+            }
+            return static_cast<int>(a.get_priority()) > static_cast<int>(b.get_priority());
+        });
+        display_tasks(sorted_tasks);
+        return 0;
 	}
 
 	std::string command = argv[1];
@@ -147,6 +154,9 @@ int main(int argc, char* argv[]) {
             std::cerr << "Error: The index you entered is too large." << std::endl;
         }
 
+	} else if (command == "clear") {
+		tasks.clear();
+		std::cout << "Tasks cleared." << std::endl;
 	} else if (command == "help") {
 		display_help();
 		return 0;
@@ -363,6 +373,8 @@ void display_help() {
     std::cout << "    Marks the task at the given index as incomplete." << std::endl << std::endl;
     std::cout << "  remove <index>" << std::endl;
     std::cout << "    Permanently removes the task at the given index." << std::endl << std::endl;
+    std::cout << "  clear" << std::endl;
+    std::cout << "    Permanently removes all tasks." << std::endl << std::endl;
     std::cout << "  help" << std::endl;
     std::cout << "    Shows this help message." << std::endl;
 }
