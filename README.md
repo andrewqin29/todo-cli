@@ -7,14 +7,14 @@ A simple, lightweight command-line based task manager built with C++.
 - Add, remove, and display tasks.
 - Mark tasks as complete or incomplete.
 - Assign priorities (high, med, low) with color-coding.
-- Automatically clears the task list daily at 4 AM for a fresh start.
+- Automatically clears the task list daily at 4 AM.
 
 ## Prerequisites
 
 To build and run this project, you will need the following tools installed on your system:
 
-- A C++17 compliant compiler (e.g., g++, clang++)
-- The `make` build automation tool
+- A C++20 compliant compiler (e.g., g++, clang++)
+- The `make` tool
 
 For most Linux and macOS systems, these tools are likely already installed. For Windows, it is recommended to use WSL.
 
@@ -32,13 +32,18 @@ For most Linux and macOS systems, these tools are likely already installed. For 
     ```sh
     make
     ```
+4. **Add to PATH:**
+	```
+	sudo cp todo /usr/local/bin/
+	```
     
 ## Usage
 
 Once built, you can use the program with the following commands:
 
-- **Add a task:** `./todo add "My new task"`
-- **Add a task with priority:** `./todo add "An urgent task" --priority high`
-- **Display all tasks:** `./todo display`
-- **Mark a task as done:** `./todo done 1` (where 1 is the task index)
-- **Remove a task:** `./todo remove 1`
+- **Add a task:** `todo add "My new task"`
+- **Add a task with priority:** `todo add "An urgent task" --priority high`
+- **Display all tasks:** `todo display`
+- **Mark a task as done:** `todo done 1` (where 1 is the task index)
+- **Remove a task:** `todo remove 1`
+- **Show help:** `todo help`
