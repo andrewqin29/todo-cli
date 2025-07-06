@@ -18,33 +18,18 @@ const std::string STYLE_COMPLETED = "\033[9;90m";			// strikethrough and grey
 const std::string COLOR_RESET = "\033[0m";
 
 // function prototypes
+void check_and_perform_daily_reset();
 std::filesystem::path get_task_path();
 void save_tasks_to_file(const std::vector<Task>& tasks);
 std::vector<Task> load_tasks_from_file();
 void display_tasks(const std::vector<Task>& tasks);
 void display_help();
-void display_command_err();
 
 // ------- MAIN -------
 int main(int argc, char* argv[]) {
 
 	// **** DAILY RESET FUNCTIONALITY ****
-	std::filesystem::path tasks_path = get_task_path();
-
-	if (!std::filesystem::exists(tasks_path)) {
-		return;
-	}
-
-	auto last_modified = std::filesystem::last_write_time(tasks_path);
-	auto curr_time = std::chrono::system_clock::now()
-	auto today_midnight = std::chrono::floor<std::chrono::days>(curr_time);
-	auto reset_time = today_midnight + std::chrono::hours(4); // 4am
-
-	if (last_modified < reset_time && curr_time >= reset_time) {
-		std::ofstream ofs;
-		ofs.open(tasks_path, std::ofstream::out | std::ofstream::trunc); // erase all
-		ofs.close();
-	}
+	check_and_perform_daily_reset();
 
 	// **** LOAD TASK VECTOR ****
 	std::vector<Task> tasks = load_tasks_from_file();
@@ -52,7 +37,7 @@ int main(int argc, char* argv[]) {
 	// **** COMMAND HANDLING ****
 	if (argc < 2) { // 'todo'
 		display_tasks(tasks);
-		return 0
+		return 0;
 	}
 
 	std::string command = argv[1];
@@ -83,6 +68,9 @@ int main(int argc, char* argv[]) {
                 i++; 
             }
         }
+        tasks.push_back(Task(description, priority));
+        std::cout << "Added new task: \"" << description << "\"" << std::endl;
+        
 	} else if (command == "display") {
 		if (argc == 2) {
 			display_tasks(tasks);
@@ -98,13 +86,14 @@ int main(int argc, char* argv[]) {
 				// create new tasks vector only containing pending tasks
 				std::vector<Task> pending_tasks;
 				for (const Task &task : tasks) {
-					if (!task.is_complete) {
+					if (!task.is_complete()) {
 						pending_tasks.push_back(task);
 					}
 				}
 				display_tasks(pending_tasks);
 			} else {
-				display_command_err();
+				std::cout << "Error: Unknown flag '" << flag << "' for display command." << std::endl;
+                std::cout << "Run 'todo help' for usage details." << std::endl;
 			}
 		}
 		return 0;
@@ -137,33 +126,61 @@ int main(int argc, char* argv[]) {
         }
         
 	} else if (command == "remove") {
-		if (argc == 3) {
-			try {
-				index = std::stoi(argv[2]);
-				if (index <= 0 || static_cast<size_t>(index) > tasks.size()) {
-				    std:: cout << "Error: index out of bounds." << std::endl;
-				    return 1; 
-				}
-				tasks.erase(tasks.begin() + index - 1);
-				std::cout << "Task at index " << argv[2] << " removed." << std::endl;
-			} catch (...) {
-				std::cout << "Error: invalid index specifier." << std::endl;
-			}
-		} else {
-			display_command_err();
-		}
+		if (argc < 3) {
+            std::cout << "Error: Please provide a task index to remove." << std::endl;
+            return 1;
+        }
+
+        try {
+            int index = std::stoi(argv[2]);
+
+            if (index <= 0 || static_cast<size_t>(index) > tasks.size()) {
+                std::cout << "Error: Invalid task index '" << index << "'." << std::endl;
+                return 1;
+            }
+
+            tasks.erase(tasks.begin() + (index - 1));
+            std::cout << "Task " << index << " removed." << std::endl;
+
+        } catch (const std::invalid_argument& e) {
+            std::cout << "Error: Invalid index. Please provide a number." << std::endl;
+        } catch (const std::out_of_range& e) {
+            std::cout << "Error: The index you entered is too large." << std::endl;
+        }
 
 	} else if (command == "help") {
 		display_help();
 		return 0;
+		
 	} else {
 		display_command_err();
 	}
-	
+
+	// save tasks after command modifications
+	save_tasks_to_file(tasks);
 	return 0;
 }
 
 // function implementations
+
+void check_and_perform_daily_reset() {
+    std::filesystem::path tasks_path = get_task_path();
+
+    if (!std::filesystem::exists(tasks_path)) {
+        return; // file doesn't exist, nothing to reset.
+    }
+
+    auto last_modified_time = std::filesystem::last_write_time(tasks_path);
+    auto current_time = std::chrono::system_clock::now();
+    auto today_midnight = std::chrono::floor<std::chrono::days>(current_time);
+    auto four_am_today = today_midnight + std::chrono::hours(4);
+
+    if (last_modified_time < four_am_today && current_time >= four_am_today) {
+        std::ofstream ofs(tasks_path, std::ios::trunc);
+        ofs.close();
+    }
+}
+
 std::filesystem::path get_task_path() {
 	const char *home_dir = getenv("HOME")
 	if (home_dir == nullptr) {
@@ -309,7 +326,3 @@ void display_help() {
     std::cout << "    Shows this help message." << std::endl;
 }
 
-void display_command_err() {
-	std::cout << "Error: Unknown command '" << command << "'" << std::endl;
-	std::cout << "Run 'todo help' to see a list of available commands." << std::endl;
-}
