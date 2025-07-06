@@ -10,7 +10,7 @@
 #include "Task.h"
 
 // ANSI escape codes for color and style
-const std::string COLOR_TITLE_RED = "\033[31m";				// title red
+const std::string COLOR_TITLE_RED = "\033[31m";				
 const std::string COLOR_HIGH_PRIORITY = "\033[38;5;217m";	// pastel red
 const std::string COLOR_MED_PRIORITY = "\033[38;5;229m";	// pastel yellow
 const std::string COLOR_LOW_PRIORITY = "\033[37m";			// standard white/default
@@ -27,7 +27,8 @@ void display_help();
 
 // ------- MAIN -------
 int main(int argc, char* argv[]) {
-
+	std::cout << std::unitbuf;
+	
 	// **** DAILY RESET FUNCTIONALITY ****
 	check_and_perform_daily_reset();
 
@@ -35,7 +36,7 @@ int main(int argc, char* argv[]) {
 	std::vector<Task> tasks = load_tasks_from_file();
 
 	// **** COMMAND HANDLING ****
-	if (argc < 2) { // 'todo'
+	if (argc < 2) { // 'todo' with no arguments
 		display_tasks(tasks);
 		return 0;
 	}
@@ -44,8 +45,8 @@ int main(int argc, char* argv[]) {
 
 	if (command == "add") {
 		if (argc < 3) {
-            std::cout << "Error: Missing task description." << std::endl;
-            std::cout << "Usage: todo add \"<description>\" [--priority <level>]" << std::endl;
+            std::cerr << "Error: Missing task description." << std::endl;
+            std::cerr << "Usage: todo add \"<description>\" [--priority <level>]" << std::endl;
             return 1;
         }
 
@@ -56,19 +57,14 @@ int main(int argc, char* argv[]) {
             std::string arg = argv[i];
             if (arg == "--priority" && i + 1 < argc) {
                 std::string p_level = argv[i + 1];
-                if (p_level == "high") {
-                    priority = Priority::High;
-                } else if (p_level == "med") {
-                    priority = Priority::Med;
-                } else if (p_level == "low") {
-                    priority = Priority::Low;
-                }
-                
-                // we've processed the flag and its value, so skip the next argument
+                if (p_level == "high") priority = Priority::High;
+                else if (p_level == "med") priority = Priority::Med;
+                else if (p_level == "low") priority = Priority::Low;
+
                 i++; 
             }
         }
-        tasks.push_back(Task(description, priority));
+        tasks.emplace_back(Task(description, priority));
         std::cout << "Added new task: \"" << description << "\"" << std::endl;
         
 	} else if (command == "display") {
@@ -85,28 +81,28 @@ int main(int argc, char* argv[]) {
 			} else if (flag == "pending") {
 				// create new tasks vector only containing pending tasks
 				std::vector<Task> pending_tasks;
-				for (const Task &task : tasks) {
+				for (const auto &task : tasks) {
 					if (!task.is_complete()) {
 						pending_tasks.push_back(task);
 					}
 				}
 				display_tasks(pending_tasks);
 			} else {
-				std::cout << "Error: Unknown flag '" << flag << "' for display command." << std::endl;
-                std::cout << "Run 'todo help' for usage details." << std::endl;
+				std::cerr << "Error: Unknown flag '" << flag << "' for display command." << std::endl;
+                std::cerr << "Run 'todo help' for usage details." << std::endl;
 			}
 		}
 		return 0;
 		
 	} else if (command == "done" || command == "undone") {
 		if (argc < 3) {
-            std::cout << "Error: Please provide a task index." << std::endl;
+            std::cerr << "Error: Please provide a task index." << std::endl;
             return 1;
         }
         try {
-            int index = std::stoi(argv[2]);
-            if (index <= 0 || static_cast<size_t>(index) > tasks.size()) {
-                std:: cout << "Error: index out of bounds." << std::endl;
+            size_t index = std::stoul(argv[2]);
+            if (index == 0 || index > tasks.size()) {
+                std::cerr << "Error: Index " << index << " is out of bounds." << std::endl;
                 return 1;
             }
 
@@ -115,37 +111,35 @@ int main(int argc, char* argv[]) {
             if (command == "done") {
                 task_to_modify.mark_is_complete(true);
                 std::cout << "Task " << index << " marked as complete." << std::endl;
-            } else { // command == "undone"
+            } else {
                 task_to_modify.mark_is_complete(false);
                 std::cout << "Task " << index << " marked as pending." << std::endl;
             }
         } catch (const std::invalid_argument& e) {
-            std::cout << "Error: Invalid index. Please provide a number." << std::endl;
+            std::cerr << "Error: Invalid index. Please provide a number." << std::endl;
         } catch (const std::out_of_range& e) {
-            std::cout << "Error: The index you entered is too large." << std::endl;
+            std::cerr << "Error: The index you entered is too large." << std::endl;
         }
         
 	} else if (command == "remove") {
 		if (argc < 3) {
-            std::cout << "Error: Please provide a task index to remove." << std::endl;
+            std::cerr << "Error: Please provide a task index to remove." << std::endl;
             return 1;
         }
 
         try {
-            int index = std::stoi(argv[2]);
-
-            if (index <= 0 || static_cast<size_t>(index) > tasks.size()) {
-                std::cout << "Error: Invalid task index '" << index << "'." << std::endl;
+            size_t index = std::stoul(argv[2]);
+            if (index == 0 || index > tasks.size()) {
+                std::cerr << "Error: Index " << index << " is out of bounds." << std::endl;
                 return 1;
             }
-
             tasks.erase(tasks.begin() + (index - 1));
             std::cout << "Task " << index << " removed." << std::endl;
 
         } catch (const std::invalid_argument& e) {
-            std::cout << "Error: Invalid index. Please provide a number." << std::endl;
+            std::cerr << "Error: Invalid index. Please provide a positive number." << std::endl;
         } catch (const std::out_of_range& e) {
-            std::cout << "Error: The index you entered is too large." << std::endl;
+            std::cerr << "Error: The index you entered is too large." << std::endl;
         }
 
 	} else if (command == "help") {
@@ -153,7 +147,7 @@ int main(int argc, char* argv[]) {
 		return 0;
 		
 	} else {
-		display_command_err();
+		std::cout << "Error: Incalid command. See 'todo help' for more info." << std::endl;
 	}
 
 	// save tasks after command modifications
@@ -161,7 +155,7 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-// function implementations
+// ------- MAIN -------
 
 void check_and_perform_daily_reset() {
     std::filesystem::path tasks_path = get_task_path();
@@ -170,7 +164,11 @@ void check_and_perform_daily_reset() {
         return; // file doesn't exist, nothing to reset.
     }
 
-    auto last_modified_time = std::filesystem::last_write_time(tasks_path);
+    auto last_modified_time_point = std::filesystem::last_write_time(tasks_path);
+    auto last_modified_time = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+        last_modified_time_point - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now()
+    );
+    
     auto current_time = std::chrono::system_clock::now();
     auto today_midnight = std::chrono::floor<std::chrono::days>(current_time);
     auto four_am_today = today_midnight + std::chrono::hours(4);
@@ -196,8 +194,7 @@ std::filesystem::path get_task_path() {
 void save_tasks_to_file(const std::vector<Task>& tasks) {
 	// clear the current tasks file
 	std::filesystem::path tasks_path = get_task_path();
-	std::ofstream ofs;
-	ofs.open(tasks_path, std::ofstream::out | std::ofstream::trunc); // erase all
+    std::ofstream ofs(tasks_path, std::ios::trunc); // erase all
 
 	if (!ofs.is_open()) {
 		std::cerr << "Error: Could not open tasks file." << std::endl;
@@ -225,6 +222,8 @@ std::vector<Task> load_tasks_from_file() {
 
 	std::string curr;
 	while(std::getline(file, curr)) {
+		if (curr.empty()) continue;
+		
 		std::stringstream ss(curr);
 		std::string part;
 
@@ -296,8 +295,7 @@ void display_tasks(const std::vector<Task>& tasks) {
 
 		// output final string
 		std::cout 	<< (i+1) << ". "
-					<< ticker 
-					<< "  " 
+					<< ticker << " " 
 					<< FILL_COLOR 
 					<< description 
 					<< COLOR_RESET 
