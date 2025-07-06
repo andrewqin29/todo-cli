@@ -11,7 +11,7 @@
 
 // ANSI escape codes for color and style
 const std::string COLOR_TITLE_RED = "\033[31m";				
-const std::string COLOR_HIGH_PRIORITY = "\033[38;5;217m";	// pastel red
+const std::string COLOR_HIGH_PRIORITY = "\033[38;5;196m";;	// pastel red
 const std::string COLOR_MED_PRIORITY = "\033[38;5;229m";	// pastel yellow
 const std::string COLOR_LOW_PRIORITY = "\033[37m";			// standard white/default
 const std::string STYLE_COMPLETED = "\033[9;90m";			// strikethrough and grey
@@ -77,6 +77,9 @@ int main(int argc, char* argv[]) {
 			if (flag == "priority") {
 				// sort tasks based on priority (high > med > low)
 				std::sort(tasks.begin(), tasks.end(), [](const Task& a, const Task& b) {
+					if (a.is_complete() != b.is_complete()) {
+                        return !a.is_complete();
+                    }
 					return static_cast<int>(a.get_priority()) > static_cast<int>(b.get_priority());
 				});
 				display_tasks(tasks);
