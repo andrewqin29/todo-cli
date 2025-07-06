@@ -10,6 +10,7 @@
 #include "Task.h"
 
 // ANSI escape codes for color and style
+const std::string COLOR_TITLE_RED = "\033[31m";				// title red
 const std::string COLOR_HIGH_PRIORITY = "\033[38;5;217m";	// pastel red
 const std::string COLOR_MED_PRIORITY = "\033[38;5;229m";	// pastel yellow
 const std::string COLOR_LOW_PRIORITY = "\033[37m";			// standard white/default
@@ -131,5 +132,48 @@ std::vector<Task> load_tasks_from_file() {
 }
 
 void display_tasks(const std::vector<Task>& tasks) {
-	
+	if (tasks.size() == 0) {
+		std::cout << "No tasks to complete :)" << std::endl;
+		return;
+	}
+
+	std::cout << COLOR_TITLE_RED << "TODO:" << COLOR_RESET << std::endl;
+	std::cout << "------" << std::endl;
+
+	for (size_t i=0; i<tasks.size(); i++) {
+		const Task &curr = tasks[i];
+		std::string description = curr.get_description();
+		bool complete = curr.is_complete();
+		Priority p = curr.get_priority();
+
+		std::string FILL_COLOR;
+		switch (p) {
+			case Priority::Low:
+				FILL_COLOR = COLOR_LOW_PRIORITY;
+				break;
+			case Priority::Med:
+				FILL_COLOR = COLOR_MED_PRIORITY;
+				break;
+			case Priority::High:
+				FILL_COLOR = COLOR_HIGH_PRIORITY;
+				break;
+			default:
+				FILL_COLOR = COLOR_LOW_PRIORITY;
+				break;
+		}
+		std::string ticker = "[ ]";
+		if (complete) {
+			ticker = "[x]";
+			FILL_COLOR = STYLE_COMPLETED;
+		}
+
+		// output final string
+		std::cout 	<< (i+1) << ". "
+					<< ticker 
+					<< "  " 
+					<< FILL_COLOR 
+					<< description 
+					<< COLOR_RESET 
+					<< "\n";
+	}
 }
