@@ -41,10 +41,11 @@ For most Linux and macOS systems, these tools are likely already installed. For 
 
 Once built, you can use the program with the following commands:
 
+- **Display tasks:** `todo`
 - **Add a task:** `todo add "My new task"`
-- **Add a task with priority:** `todo add "An urgent task" --priority high`
-- **Display all tasks:** `todo display`
-- **Mark a task as done:** `todo done 1` (where 1 is the task index)
+- **Add a task with priority:** `todo add "An urgent task" --priority high` other options are: med, low (default)
+- **Mark a task as done:** `todo done 1` where 1 is the task index
+- **Undo a completed task:** `todo undone 1`
 - **Remove a task:** `todo remove 1`
 - **Clear all tasks:** `todo clear`
 - **Show help:** `todo help`
