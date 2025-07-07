@@ -26,6 +26,7 @@ void save_tasks_to_file(const std::vector<Task>& tasks);
 std::vector<Task> load_tasks_from_file();
 void display_tasks(const std::vector<Task>& tasks);
 void display_help();
+void sort_tasks(std::vector<Task> &tasks);
 
 // ------- MAIN -------
 int main(int argc, char* argv[]) {
@@ -38,136 +39,110 @@ int main(int argc, char* argv[]) {
 	std::vector<Task> tasks = load_tasks_from_file();
 
 	// **** COMMAND HANDLING ****
-	if (argc < 2) { // 'todo' with no arguments
-		std::vector<Task> sorted_tasks = tasks;
-        std::sort(sorted_tasks.begin(), sorted_tasks.end(), [](const Task& a, const Task& b) {
-            if (a.is_complete() != b.is_complete()) {
-                return !a.is_complete();
-            }
-            return static_cast<int>(a.get_priority()) > static_cast<int>(b.get_priority());
-        });
-        display_tasks(sorted_tasks);
- 
-	} else {
-		std::string command = argv[1];
-
-		if (command == "add") {
-			if (argc < 3) {
-	            std::cerr << "Error: Missing task description." << std::endl;
-	            std::cerr << "Usage: todo add \"<description>\" [--priority <level>]" << std::endl;
-	            return 1;
-	        }
-
-	        std::string description = argv[2];
-	        Priority priority = Priority::Low;
-
-	        for (int i = 3; i < argc; ++i) {
-	            std::string arg = argv[i];
-	            if (arg == "--priority" && i + 1 < argc) {
-	                std::string p_level = argv[i + 1];
-	                if (p_level == "high") priority = Priority::High;
-	                else if (p_level == "med") priority = Priority::Med;
-	                else if (p_level == "low") priority = Priority::Low;
-
-	                i++; 
-	            }
-	        }
-	        tasks.emplace_back(description, priority);
-	        std::cout << "Added new task: \"" << description << "\"" << std::endl;
-	        
-		} else if (command == "display") {
-			if (argc == 2) {
-				display_tasks(tasks);
-			} else {
-				std::string flag = argv[2];
-				if (flag == "priority") {
-					// sort tasks based on priority (high > med > low)
-					std::sort(tasks.begin(), tasks.end(), [](const Task& a, const Task& b) {
-						if (a.is_complete() != b.is_complete()) {
-	                        return !a.is_complete();
-	                    }
-						return static_cast<int>(a.get_priority()) > static_cast<int>(b.get_priority());
-					});
-					display_tasks(tasks);
-				} else if (flag == "pending") {
-					// create new tasks vector only containing pending tasks
-					std::vector<Task> pending_tasks;
-					for (const auto &task : tasks) {
-						if (!task.is_complete()) {
-							pending_tasks.push_back(task);
-						}
-					}
-					display_tasks(pending_tasks);
-				} else {
-					std::cerr << "Error: Unknown flag '" << flag << "' for display command." << std::endl;
-	                std::cerr << "Run 'todo help' for usage details." << std::endl;
-				}
-			}
-			
-		} else if (command == "done" || command == "undone") {
-			if (argc < 3) {
-	            std::cerr << "Error: Please provide a task index." << std::endl;
-	            return 1;
-	        }
-	        try {
-	            size_t index = std::stoul(argv[2]);
-	            if (index == 0 || index > tasks.size()) {
-	                std::cerr << "Error: Index " << index << " is out of bounds." << std::endl;
-	                return 1;
-	            }
-
-	            Task& task_to_modify = tasks.at(index - 1);
-
-	            if (command == "done") {
-	                task_to_modify.mark_is_complete(true);
-	                std::cout << "Task " << index << " marked as complete." << std::endl;
-	            } else {
-	                task_to_modify.mark_is_complete(false);
-	                std::cout << "Task " << index << " marked as pending." << std::endl;
-	            }
-	        } catch (const std::exception&) {
-                std::cerr << "Error: Invalid index." << std::endl;
-                return 1;
-            }
-	        
-		} else if (command == "remove") {
-			if (argc < 3) {
-	            std::cerr << "Error: Please provide a task index to remove." << std::endl;
-	            return 1;
-	        }
-
-	        try {
-	            size_t index = std::stoul(argv[2]);
-	            if (index == 0 || index > tasks.size()) {
-	                std::cerr << "Error: Index " << index << " is out of bounds." << std::endl;
-	                return 1;
-	            }
-	            tasks.erase(tasks.begin() + (index - 1));
-	            std::cout << "Task " << index << " removed." << std::endl;
-
-	        } catch (const std::exception&) {
-                std::cerr << "Error: Invalid index." << std::endl;
-                return 1;
-            }
-
-		} else if (command == "clear") {
-			tasks.clear();
-			std::cout << "Tasks cleared." << std::endl;
-		} else if (command == "help") {
-			display_help();
-			return 0;
-			
-		} else {
-			std::cout << "Error: Invalid command. See 'todo help' for more info." << std::endl;
-			return 1;
-		}
+	if (argc < 2) { // just 'todo'
+		display_tasks(tasks);
+		return 0;
 	}
-	// save tasks after command modifications
-	save_tasks_to_file(tasks);
+
+	std::string command = argv[1];
+	
+	if (command == "add") {
+		if (argc < 3) {
+            std::cerr << "Error: Missing task description." << std::endl;
+            return 1;
+        }
+        std::string description = argv[2];
+        Priority priority = Priority::Low;
+        for (int i = 3; i < argc; ++i) {
+            if (std::string(argv[i]) == "--priority" && i + 1 < argc) {
+                std::string p_level = argv[++i];
+                if (p_level == "high") priority = Priority::High;
+                else if (p_level == "med") priority = Priority::Med;
+            }
+        }
+        tasks.emplace_back(description, priority);
+        std::cout << "Added new task: \"" << description << "\"" << std::endl;
+        
+	} else if (command == "done" || command == "undone") {
+		if (argc < 3) {
+            std::cerr << "Error: Please provide a task index." << std::endl;
+            return 1;
+        }
+        try {
+            size_t index = std::stoul(argv[2]);
+            if (index == 0 || index > tasks.size()) {
+                std::cerr << "Error: Index " << index << " is out of bounds." << std::endl;
+                return 1;
+            }
+            tasks.at(index - 1).mark_is_complete(command == "done");
+            std::cout << "Task " << index << " marked as " << (command == "done" ? "complete." : "pending.") << std::endl;
+        } catch (const std::exception&) {
+            std::cerr << "Error: Invalid index. Please provide a number." << std::endl;
+            return 1;
+        }
+        
+	} else if (command == "remove") {
+		if (argc < 3) {
+            std::cerr << "Error: Please provide a task index to remove." << std::endl;
+            return 1;
+        }
+        try {
+            size_t index = std::stoul(argv[2]);
+            if (index == 0 || index > tasks.size()) {
+                std::cerr << "Error: Index " << index << " is out of bounds." << std::endl;
+                return 1;
+            }
+            tasks.erase(tasks.begin() + (index - 1));
+            std::cout << "Task " << index << " removed." << std::endl;
+        } catch (const std::exception&) {
+            std::cerr << "Error: Invalid index. Please provide a positive number." << std::endl;
+            return 1;
+        }
+        
+	} else if (command == "clear") {
+		tasks.clear();
+		std::cout << "All tasks cleared." << std::endl;
+	} else if (command == "help") {
+        display_help();
+        return 0;
+
+    } else {
+        std::cerr << "Error: Invalid command '" << command << "'. See 'todo help' for more info." << std::endl;
+        return 1;
+    }
+	
+	// After any modification, re-sort the list to maintain consistency.
+    sort_tasks(tasks);
+    // Save the final, sorted state to the file.
+    save_tasks_to_file(tasks);
+    // Display the final state to the user.
+    std::cout << "\n"; // Add a newline for spacing
+    display_tasks(tasks);
+    
 	return 0;
 }
 
 // ------- FUNCTION IMPLEMENTATIONS -------
+void sort_tasks(std::vector<Task>& tasks) {
+    std::sort(tasks.begin(), tasks.end(), [](const Task& a, const Task& b) {
+        if (a.is_complete() != b.is_complete()) {
+            return !a.is_complete();
+        }
+        return static_cast<int>(a.get_priority()) > static_cast<int>(b.get_priority());
+    });
+}
+
+std::filesystem::path get_task_path() {
+	const char *home_dir = getenv("HOME");
+	if (home_dir == nullptr) {
+		std::cerr << "Fatal Error: HOME environment variable not set. Cannot determine file path." << std::endl;
+		exit(1);
+	}
+	
+	std::string home_dir_str(home_dir);
+	std::filesystem::path tasks_path = std::filesystem::path(home_dir) / TASKS_FILENAME; //path to tasks csv should be /home/username/.todo-cli-tasks.csv
+	return tasks_path;
+}
 
 void check_and_perform_daily_reset() {
     std::filesystem::path tasks_path = get_task_path();
@@ -187,27 +162,14 @@ void check_and_perform_daily_reset() {
 
     if (last_modified_time < four_am_today && current_time >= four_am_today) {
         std::ofstream ofs(tasks_path, std::ios::trunc);
-        ofs.close();
     }
 }
 
-std::filesystem::path get_task_path() {
-	const char *home_dir = getenv("HOME");
-	if (home_dir == nullptr) {
-		std::cerr << "Fatal Error: HOME environment variable not set. Cannot determine file path." << std::endl;
-		exit(1);
-	}
-	
-	std::string home_dir_str(home_dir);
-	std::filesystem::path tasks_path = std::filesystem::path(home_dir) / TASKS_FILENAME; //path to tasks csv should be /home/username/.todo-cli-tasks.csv
-	return tasks_path;
-}
 
 void save_tasks_to_file(const std::vector<Task>& tasks) {
 	// clear the current tasks file
 	std::filesystem::path tasks_path = get_task_path();
     std::ofstream ofs(tasks_path, std::ios::trunc); // erase all
-
 	if (!ofs.is_open()) {
 		std::cerr << "Error: Could not open tasks file." << std::endl;
 		return;
@@ -238,9 +200,7 @@ std::vector<Task> load_tasks_from_file() {
 	bool is_file_dirty = false; // flag for rewriting file
 
 	std::ifstream file(tasks_path);
-	if (!file.is_open()) { 
-		return loaded_tasks;
-	}
+	if (!file.is_open()) return loaded_tasks;
 
 	std::string line;
 	while(std::getline(file, line)) {
@@ -358,16 +318,15 @@ void display_help() {
     std::cout << "----------------" << std::endl;
     std::cout << "A simple command-line task manager." << std::endl << std::endl;
     std::cout << "USAGE:" << std::endl;
-    std::cout << "  todo <command> [arguments]" << std::endl << std::endl;
+    std::cout << "  todo <command> [arguments]" << std::endl;
+    std::cout << "  (running 'todo' with no command displays all tasks)" << std::endl << std::endl;
     std::cout << "COMMANDS:" << std::endl;
     std::cout << "  add \"<description>\" [--priority <level>]" << std::endl;
     std::cout << "    Adds a new task. Priority can be 'low', 'med', or 'high'." << std::endl << std::endl;
-    std::cout << "  display [priority|pending]" << std::endl;
-    std::cout << "    Displays tasks. Default is all. 'priority' sorts by priority, 'pending' shows only incomplete tasks." << std::endl << std::endl;
     std::cout << "  done <index>" << std::endl;
     std::cout << "    Marks the task at the given index as complete." << std::endl << std::endl;
     std::cout << "  undone <index>" << std::endl;
-    std::cout << "    Marks the task at the given index as incomplete." << std::endl << std::endl;
+    std::cout << "    Marks the task at the given index as pending." << std::endl << std::endl;
     std::cout << "  remove <index>" << std::endl;
     std::cout << "    Permanently removes the task at the given index." << std::endl << std::endl;
     std::cout << "  clear" << std::endl;
@@ -375,4 +334,5 @@ void display_help() {
     std::cout << "  help" << std::endl;
     std::cout << "    Shows this help message." << std::endl;
 }
+
 

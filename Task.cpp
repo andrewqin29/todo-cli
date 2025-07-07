@@ -1,19 +1,13 @@
 #include "Task.h"
 
 // Constructor
-Task::Task(uint64_t id, const std::string& description, Priority priority)
-	 : m_id(id),
-	 description(description), 
+Task::Task(const std::string& description, Priority priority)
+	 : description(description), 
 	 m_is_complete(false),
 	 priority(priority)
 {}
 
 // Getters
-
-uint64_t Task::get_id() const {
-	return this->m_id;
-}
-
 std::string Task::get_description() const {
 	return this->description;
 }
