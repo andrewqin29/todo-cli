@@ -6,6 +6,7 @@
 #include <algorithm>	// for std::sort
 #include <chrono> 		// for 4am reset functionality
 #include <filesystem>	// ^^
+#include <ctime>
 
 #include "Task.h"
 
@@ -157,12 +158,21 @@ void check_and_perform_daily_reset() {
     );
     
     auto current_time = std::chrono::system_clock::now();
-    auto today_midnight = std::chrono::floor<std::chrono::days>(current_time);
-    auto four_am_today = today_midnight + std::chrono::hours(4);
+    std::time_t current_time_t = std::chrono::system_clock::to_time_t(current_time);
+    tm* local_tm = std::localtime(&current_time_t);
 
+    tm four_am_tm = *local_tm;
+    four_am_tm.tm_hour = 4;
+    four_am_tm.tm_min = 0;
+    four_am_tm.tm_sec = 0;
+
+    auto four_am_today = std::chrono::system_clock::from_time_t(std::mktime(&four_am_tm));
+ 
     if (last_modified_time < four_am_today && current_time >= four_am_today) {
+        std::cout << "Performing daily reset..." << std::endl;
         std::ofstream ofs(tasks_path, std::ios::trunc);
     }
+    
 }
 
 
